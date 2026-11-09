@@ -116,8 +116,12 @@ async function login(page: Page, rut: string, password: string, debugLog: string
   // Fill RUT
   debugLog.push("3. Filling RUT...");
   progress("Ingresando RUT...");
-  const rutInput = page.getByRole("textbox", { name: "RUT", exact: true })
-    .or(page.locator('input[name*="rut"], input[id*="rut"], input[placeholder*="RUT"]').first());
+  const rutInput = page.locator('#document')
+    .or(page.locator('input[name="document"]'))
+    .or(page.locator('input[placeholder*="12345678"]'))
+    .or(page.getByRole("textbox", { name: "RUT", exact: true }))
+    .or(page.locator('input[name*="rut"], input[id*="rut"]').first())
+    .first();
   try {
     await rutInput.fill(rut, { timeout: 10000 });
   } catch {
@@ -549,15 +553,18 @@ async function scrapeCreditCard(page: Page, debugLog: string[], doScreenshots: b
   if (cupoData) Object.assign(creditCard, cupoData);
 
   // Click on CMR product card
-  const cmrLink = page.getByRole("link", { name: /CMR/ }).first()
-    .or(page.locator("#cardDetail0, [id^='cardDetail']").first())
-    .or(page.locator("a, button, div").filter({ hasText: /CMR/i }).first());
+  const cmrLink = page.locator("#cardDetail0")
+    .or(page.locator('a.div-product').filter({ hasText: /CMR/i }).first())
+    .or(page.locator("[id^='cardDetail']").filter({ hasText: /CMR/i }).first())
+    .or(page.getByRole("link", { name: /CMR/ }).first())
+    .first();
 
   if (!(await cmrLink.isVisible({ timeout: 5000 }).catch(() => false))) {
     debugLog.push("  [CMR] No CMR card found on dashboard");
     return { movements: [], creditCard };
   }
 
+  debugLog.push("  [CMR] Found CMR card, clicking...");
   await cmrLink.click();
   await page.waitForLoadState("networkidle").catch(() => {});
   await delay(5000);
